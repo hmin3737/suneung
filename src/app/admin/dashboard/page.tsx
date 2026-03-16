@@ -385,9 +385,17 @@ function BulkFileForm({ onDone }: { onDone: () => void }) {
       const form = new FormData();
       form.append('zip', file);
       const res = await fetch('/api/admin/bulk-files', { method: 'POST', body: form });
-      const data = await res.json();
-      if (res.ok) { setResult(data.results); onDone(); }
-      else setResult([{ filename: '오류', status: data.error }]);
+      let data: { results?: { filename: string; status: string }[]; error?: string };
+      try {
+        data = await res.json();
+      } catch {
+        setResult([{ filename: '서버 오류', status: `HTTP ${res.status} — JSON 파싱 실패` }]);
+        return;
+      }
+      if (res.ok) { setResult(data.results ?? []); onDone(); }
+      else setResult([{ filename: '오류', status: data.error ?? `HTTP ${res.status}` }]);
+    } catch (err) {
+      setResult([{ filename: '네트워크 오류', status: String(err) }]);
     } finally { setLoading(false); }
   };
 
