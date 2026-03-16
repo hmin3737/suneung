@@ -28,15 +28,25 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS grade_cutoffs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
-    grade_1 INTEGER,
-    grade_2 INTEGER,
-    grade_3 INTEGER,
-    grade_4 INTEGER,
-    grade_5 INTEGER,
-    grade_6 INTEGER,
-    grade_7 INTEGER,
-    grade_8 INTEGER,
-    grade_9 INTEGER
+
+    -- 국어/수학/탐구 등: 범위 (max = null 이면 단일값)
+    grade_1_min INTEGER, grade_1_max INTEGER,
+    grade_2_min INTEGER, grade_2_max INTEGER,
+    grade_3_min INTEGER, grade_3_max INTEGER,
+    grade_4_min INTEGER, grade_4_max INTEGER,
+    grade_5_min INTEGER, grade_5_max INTEGER,
+    grade_6_min INTEGER, grade_6_max INTEGER,
+    grade_7_min INTEGER, grade_7_max INTEGER,
+    grade_8_min INTEGER, grade_8_max INTEGER,
+    grade_9_min INTEGER, grade_9_max INTEGER,
+
+    -- 영어 절대평가: 누적비율 (%)
+    eng_pct_1 REAL, eng_pct_2 REAL, eng_pct_3 REAL,
+    eng_pct_4 REAL, eng_pct_5 REAL, eng_pct_6 REAL,
+    eng_pct_7 REAL, eng_pct_8 REAL, eng_pct_9 REAL,
+
+    -- 표준점수 최고점
+    max_standard_score INTEGER
   );
 `);
 
@@ -57,13 +67,17 @@ export type Exam = {
 export type GradeCutoff = {
   id: number;
   exam_id: number;
-  grade_1: number | null;
-  grade_2: number | null;
-  grade_3: number | null;
-  grade_4: number | null;
-  grade_5: number | null;
-  grade_6: number | null;
-  grade_7: number | null;
-  grade_8: number | null;
-  grade_9: number | null;
+  grade_1_min: number | null; grade_1_max: number | null;
+  grade_2_min: number | null; grade_2_max: number | null;
+  grade_3_min: number | null; grade_3_max: number | null;
+  grade_4_min: number | null; grade_4_max: number | null;
+  grade_5_min: number | null; grade_5_max: number | null;
+  grade_6_min: number | null; grade_6_max: number | null;
+  grade_7_min: number | null; grade_7_max: number | null;
+  grade_8_min: number | null; grade_8_max: number | null;
+  grade_9_min: number | null; grade_9_max: number | null;
+  eng_pct_1: number | null; eng_pct_2: number | null; eng_pct_3: number | null;
+  eng_pct_4: number | null; eng_pct_5: number | null; eng_pct_6: number | null;
+  eng_pct_7: number | null; eng_pct_8: number | null; eng_pct_9: number | null;
+  max_standard_score: number | null;
 };

@@ -1,10 +1,12 @@
 export const GRADES = ['고1', '고2', '고3'] as const;
 
-export const EXAM_TYPES = {
-  고1: ['교육청'],
-  고2: ['교육청'],
-  고3: ['교육청', '평가원', '수능'],
-} as const;
+export function getExamType(grade: string, month: number): string {
+  if (grade === '고3') {
+    if (month === 11) return '수능';
+    if (month === 6 || month === 9) return '평가원';
+  }
+  return '교육청';
+}
 
 export const MONTHS_BY_GRADE: Record<string, number[]> = {
   고1: [3, 4, 6, 9, 11],
@@ -12,38 +14,19 @@ export const MONTHS_BY_GRADE: Record<string, number[]> = {
   고3: [3, 4, 6, 7, 9, 10, 11],
 };
 
-export const SUBJECTS = [
-  '국어',
-  '수학',
-  '영어',
-  '한국사',
-  '생활과윤리',
-  '윤리와사상',
-  '한국지리',
-  '세계지리',
-  '동아시아사',
-  '세계사',
-  '경제',
-  '정치와법',
-  '사회문화',
-  '물리학1',
-  '물리학2',
-  '화학1',
-  '화학2',
-  '생명과학1',
-  '생명과학2',
-  '지구과학1',
-  '지구과학2',
-  '독일어',
-  '프랑스어',
-  '스페인어',
-  '중국어',
-  '일본어',
-  '러시아어',
-  '아랍어',
-  '베트남어',
-  '한문',
-] as const;
+export const MAIN_SUBJECTS = ['국어', '수학', '영어', '한국사', '사회', '과학', '제2외국어/한문'] as const;
+export type MainSubject = (typeof MAIN_SUBJECTS)[number];
+
+export const SUB_SUBJECTS: Partial<Record<MainSubject, string[]>> = {
+  사회: ['생활과윤리', '윤리와사상', '한국지리', '세계지리', '동아시아사', '세계사', '경제', '정치와법', '사회문화'],
+  과학: ['물리학Ⅰ', '물리학Ⅱ', '화학Ⅰ', '화학Ⅱ', '생명과학Ⅰ', '생명과학Ⅱ', '지구과학Ⅰ', '지구과학Ⅱ'],
+  '제2외국어/한문': ['독일어Ⅰ', '프랑스어Ⅰ', '스페인어Ⅰ', '중국어Ⅰ', '일본어Ⅰ', '러시아어Ⅰ', '아랍어Ⅰ', '베트남어Ⅰ', '한문Ⅰ'],
+};
+
+// DB에 저장되는 실제 과목명 반환
+export function resolveSubject(main: string, sub: string): string {
+  return SUB_SUBJECTS[main as MainSubject] ? sub : main;
+}
 
 export const CURRENT_YEAR = new Date().getFullYear();
 export const YEARS = Array.from({ length: 15 }, (_, i) => CURRENT_YEAR - i);

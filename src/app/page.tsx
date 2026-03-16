@@ -5,7 +5,7 @@ import ExamSelector from '@/components/ExamSelector';
 import FileDownloadCard from '@/components/FileDownloadCard';
 import GradeCutoffTable from '@/components/GradeCutoffTable';
 import AdBanner from '@/components/AdBanner';
-import { MONTHS_BY_GRADE } from '@/lib/constants';
+import { MONTHS_BY_GRADE, getExamType } from '@/lib/constants';
 
 type ExamData = {
   id: number;
@@ -77,13 +77,7 @@ export default function Home() {
     }
   }, [selection]);
 
-  const examTypeLabel = exam
-    ? exam.exam_type
-    : selection.grade === '고3' && selection.month === 11
-    ? '수능'
-    : selection.grade === '고3' && (selection.month === 6 || selection.month === 9)
-    ? '평가원'
-    : '교육청';
+  const examTypeLabel = getExamType(selection.grade, selection.month);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -147,7 +141,7 @@ export default function Home() {
                 </div>
 
                 {/* 등급컷 */}
-                <GradeCutoffTable cutoffs={exam} />
+                <GradeCutoffTable subject={exam.subject} cutoff={exam as any} />
 
                 {/* 하단 광고 */}
                 <div className="flex justify-center mt-4">

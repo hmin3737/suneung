@@ -3,6 +3,12 @@ import { isAdminAuthenticated } from '@/lib/auth';
 import { uploadToS3, buildS3Key } from '@/lib/s3';
 import db from '@/lib/db';
 
+function num(v: FormDataEntryValue | null) {
+  if (!v || v === '') return null;
+  const n = parseFloat(v as string);
+  return isNaN(n) ? null : n;
+}
+
 export async function POST(req: NextRequest) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: '권한 없음' }, { status: 401 });
@@ -19,15 +25,16 @@ export async function POST(req: NextRequest) {
   const answerFile = formData.get('answer') as File | null;
   const ebsFile = formData.get('ebs') as File | null;
 
-  const grade1 = formData.get('grade_1') ? parseInt(formData.get('grade_1') as string) : null;
-  const grade2 = formData.get('grade_2') ? parseInt(formData.get('grade_2') as string) : null;
-  const grade3 = formData.get('grade_3') ? parseInt(formData.get('grade_3') as string) : null;
-  const grade4 = formData.get('grade_4') ? parseInt(formData.get('grade_4') as string) : null;
-  const grade5 = formData.get('grade_5') ? parseInt(formData.get('grade_5') as string) : null;
-  const grade6 = formData.get('grade_6') ? parseInt(formData.get('grade_6') as string) : null;
-  const grade7 = formData.get('grade_7') ? parseInt(formData.get('grade_7') as string) : null;
-  const grade8 = formData.get('grade_8') ? parseInt(formData.get('grade_8') as string) : null;
-  const grade9 = formData.get('grade_9') ? parseInt(formData.get('grade_9') as string) : null;
+  // 등급컷 파싱
+  const cutoffData: Record<string, number | null> = {};
+  for (let i = 1; i <= 9; i++) {
+    cutoffData[`grade_${i}_min`] = num(formData.get(`grade_${i}_min`));
+    cutoffData[`grade_${i}_max`] = num(formData.get(`grade_${i}_max`));
+    cutoffData[`eng_pct_${i}`] = num(formData.get(`eng_pct_${i}`));
+  }
+  cutoffData['max_standard_score'] = num(formData.get('max_standard_score'));
+
+  const hasCutoffs = Object.values(cutoffData).some((v) => v !== null);
 
   // 기존 시험 확인
   const existing = db
@@ -36,9 +43,9 @@ export async function POST(req: NextRequest) {
 
   let examId: number;
 
-  const problemKey = problemFile ? buildS3Key(grade, year, month, examType, subject, 'problem') : null;
-  const answerKey = answerFile ? buildS3Key(grade, year, month, examType, subject, 'answer') : null;
-  const ebsKey = ebsFile ? buildS3Key(grade, year, month, examType, subject, 'ebs') : null;
+  const problemKey = problemFile?.size ? buildS3Key(grade, year, month, examType, subject, 'problem') : null;
+  const answerKey = answerFile?.size ? buildS3Key(grade, year, month, examType, subject, 'answer') : null;
+  const ebsKey = ebsFile?.size ? buildS3Key(grade, year, month, examType, subject, 'ebs') : null;
 
   if (existing) {
     examId = existing.id;
@@ -60,33 +67,30 @@ export async function POST(req: NextRequest) {
   }
 
   // 등급컷 저장
-  const hasCutoffs = [grade1, grade2, grade3, grade4, grade5, grade6, grade7, grade8, grade9].some(
-    (v) => v !== null
-  );
   if (hasCutoffs) {
     const existingCutoff = db.prepare('SELECT id FROM grade_cutoffs WHERE exam_id=?').get(examId);
+    const cols = Object.keys(cutoffData);
+    const vals = cols.map((c) => cutoffData[c]);
+
     if (existingCutoff) {
-      db.prepare(
-        `UPDATE grade_cutoffs SET grade_1=?,grade_2=?,grade_3=?,grade_4=?,grade_5=?,grade_6=?,grade_7=?,grade_8=?,grade_9=? WHERE exam_id=?`
-      ).run(grade1, grade2, grade3, grade4, grade5, grade6, grade7, grade8, grade9, examId);
+      const setClause = cols.map((c) => `${c}=?`).join(',');
+      db.prepare(`UPDATE grade_cutoffs SET ${setClause} WHERE exam_id=?`).run(...vals, examId);
     } else {
+      const placeholders = cols.map(() => '?').join(',');
       db.prepare(
-        `INSERT INTO grade_cutoffs (exam_id,grade_1,grade_2,grade_3,grade_4,grade_5,grade_6,grade_7,grade_8,grade_9) VALUES (?,?,?,?,?,?,?,?,?,?)`
-      ).run(examId, grade1, grade2, grade3, grade4, grade5, grade6, grade7, grade8, grade9);
+        `INSERT INTO grade_cutoffs (exam_id,${cols.join(',')}) VALUES (?,${placeholders})`
+      ).run(examId, ...vals);
     }
   }
 
-  // S3 파일 업로드
+  // S3 업로드
   const uploads: Promise<void>[] = [];
-  if (problemFile && problemKey) {
+  if (problemFile?.size && problemKey)
     uploads.push(uploadToS3(problemKey, Buffer.from(await problemFile.arrayBuffer()), 'application/pdf'));
-  }
-  if (answerFile && answerKey) {
+  if (answerFile?.size && answerKey)
     uploads.push(uploadToS3(answerKey, Buffer.from(await answerFile.arrayBuffer()), 'application/pdf'));
-  }
-  if (ebsFile && ebsKey) {
+  if (ebsFile?.size && ebsKey)
     uploads.push(uploadToS3(ebsKey, Buffer.from(await ebsFile.arrayBuffer()), 'application/pdf'));
-  }
   await Promise.all(uploads);
 
   return NextResponse.json({ ok: true, examId });
