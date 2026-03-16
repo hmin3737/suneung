@@ -12,6 +12,7 @@ function parseFilename(filename: string): {
 } | null {
   const base = filename.normalize('NFC').replace(/\.pdf$/i, '');
   const parts = base.split('_');
+  console.log('[parse]', JSON.stringify(filename), '→ parts:', parts);
   if (parts.length < 5) return null;
 
   const year = parseInt(parts[0]);
