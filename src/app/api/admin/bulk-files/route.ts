@@ -76,10 +76,6 @@ export async function POST(req: NextRequest) {
     const keyColumn = { problem: 'problem_s3_key', answer: 'answer_s3_key', ebs: 'ebs_s3_key' }[fileType];
 
     if (!exam) {
-      const result = db
-        .prepare('INSERT INTO exams (grade,year,month,exam_type,subject,?) VALUES (?,?,?,?,?,?)')
-        .run(keyColumn, grade, year, month, examType, subject, s3Key);
-      // SQLite doesn't support dynamic column names like that — do it properly:
       db.prepare(`INSERT OR IGNORE INTO exams (grade,year,month,exam_type,subject) VALUES (?,?,?,?,?)`).run(grade, year, month, examType, subject);
       exam = db.prepare('SELECT id FROM exams WHERE grade=? AND year=? AND month=? AND subject=?').get(grade, year, month, subject) as { id: number };
     }
