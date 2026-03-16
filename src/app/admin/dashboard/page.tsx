@@ -306,15 +306,12 @@ function SingleUploadForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ─── 엑셀 일괄 입력 ───────────────────────────────────
+// ─── CSV 일괄 입력 ────────────────────────────────────
 function ExcelUploadForm() {
+  const [csvType, setCsvType] = useState<'regular' | 'english'>('regular');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string>('');
-
-  const handleDownloadTemplate = () => {
-    window.open('/api/admin/template', '_blank');
-  };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,43 +320,47 @@ function ExcelUploadForm() {
     try {
       const form = new FormData();
       form.append('file', file);
+      form.append('type', csvType);
       const res = await fetch('/api/admin/excel-upload', { method: 'POST', body: form });
       const data = await res.json();
-      if (res.ok) {
-        const lines = data.results.map((r: any) =>
-          `[${r.sheet}] ${r.rows}행 처리${r.errors.length ? ` (오류 ${r.errors.length}개)` : ''}`
-        );
-        setResult('완료:\n' + lines.join('\n'));
-      } else {
-        setResult(`오류: ${data.error}`);
-      }
+      if (res.ok) setResult(`완료: ${data.count}행 처리${data.errors.length ? ` (오류 ${data.errors.length}개)` : ''}`);
+      else setResult(`오류: ${data.error}`);
     } finally { setLoading(false); }
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <h2 className="text-xl font-bold text-gray-700 mb-2">엑셀 일괄 입력</h2>
-      <p className="text-sm text-gray-500 mb-5">등급컷/누적비율 데이터를 엑셀로 한 번에 입력합니다.</p>
+      <h2 className="text-xl font-bold text-gray-700 mb-2">CSV 일괄 입력</h2>
+      <p className="text-sm text-gray-500 mb-5">등급컷 데이터를 CSV로 한 번에 입력합니다. CSV는 엑셀에서 그대로 열립니다.</p>
 
-      <div className="flex gap-3 mb-6">
-        <button onClick={handleDownloadTemplate}
+      <div className="flex gap-2 mb-4">
+        {(['regular', 'english'] as const).map((t) => (
+          <button key={t} type="button" onClick={() => setCsvType(t)}
+            className={`px-4 py-2 rounded-lg text-sm font-bold border-2 transition-all ${csvType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'}`}>
+            {t === 'regular' ? '일반과목' : '영어'}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-3 mb-5">
+        <a href={`/api/admin/template?type=${csvType}`} download
           className="px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm">
-          📥 엑셀 양식 다운로드
-        </button>
+          📥 CSV 양식 다운로드
+        </a>
         <p className="text-sm text-gray-400 self-center">양식을 다운받아 작성 후 업로드하세요.</p>
       </div>
 
       <form onSubmit={handleUpload} className="flex flex-col gap-4">
         <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
-          <input type="file" accept=".xlsx,.xls"
+          <input type="file" accept=".csv"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
             className="text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 file:border-0 file:rounded-lg file:bg-blue-50 file:text-blue-700 file:font-medium" />
           {file && <p className="text-xs text-green-600 mt-2">{file.name}</p>}
         </div>
         {result && (
-          <pre className={`text-sm p-3 rounded-lg whitespace-pre-wrap ${result.startsWith('오류') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+          <p className={`text-sm font-medium p-3 rounded-lg ${result.startsWith('오류') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
             {result}
-          </pre>
+          </p>
         )}
         <button type="submit" disabled={loading || !file}
           className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-lg disabled:opacity-50">
