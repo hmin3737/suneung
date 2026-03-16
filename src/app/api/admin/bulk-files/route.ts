@@ -45,8 +45,16 @@ export async function POST(req: NextRequest) {
   if (!zipFile) return NextResponse.json({ error: '파일 없음' }, { status: 400 });
 
   const buf = Buffer.from(await zipFile.arrayBuffer());
-  const zip = new AdmZip(buf);
+  console.log('[bulk-files] zip size:', buf.length);
+  let zip: AdmZip;
+  try {
+    zip = new AdmZip(buf);
+  } catch (e) {
+    console.error('[bulk-files] AdmZip parse error:', e);
+    return NextResponse.json({ error: `ZIP 파싱 실패: ${(e as Error).message}` }, { status: 400 });
+  }
   const entries = zip.getEntries();
+  console.log('[bulk-files] entries:', entries.length);
 
   const results: { filename: string; status: string }[] = [];
 
