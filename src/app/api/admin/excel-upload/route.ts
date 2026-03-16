@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/auth';
-import { getExamType } from '@/lib/constants';
+import { getExamType, isPercentSubject } from '@/lib/constants';
 import db from '@/lib/db';
 
 function n(v: string | undefined): number | null {
@@ -68,8 +68,10 @@ export async function POST(req: NextRequest) {
     const month = n(get('월'));
     if (!grade || !year || !month) { errors.push(`스킵: ${row.join(',')}`); continue; }
 
-    if (type === 'english') {
-      const examId = upsertExam(grade, year, month, '영어');
+    if (type === 'percent') {
+      const subject = get('과목');
+      if (!subject) { errors.push(`과목 없음: ${row.join(',')}`); continue; }
+      const examId = upsertExam(grade, year, month, subject);
       const data: Record<string, number | null> = { max_standard_score: null };
       for (let i = 1; i <= 9; i++) {
         data[`eng_pct_${i}`] = n(get(`${i}등급_누적비율(%)`));

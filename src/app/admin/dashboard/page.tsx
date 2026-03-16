@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { GRADES, MAIN_SUBJECTS, SUB_SUBJECTS, YEARS, MONTHS_BY_GRADE, resolveSubject, getExamType } from '@/lib/constants';
+import { GRADES, MAIN_SUBJECTS, SUB_SUBJECTS, YEARS, MONTHS_BY_GRADE, resolveSubject, getExamType, isPercentSubject } from '@/lib/constants';
 
 type Exam = {
   id: number;
@@ -132,7 +132,7 @@ function SingleUploadForm({ onDone }: { onDone: () => void }) {
   const examType = getExamType(grade, month);
   const subList = SUB_SUBJECTS[mainSubject as keyof typeof SUB_SUBJECTS] ?? null;
   const resolvedSubject = resolveSubject(mainSubject, subSubject || subList?.[0] || mainSubject);
-  const isEnglish = resolvedSubject === '영어';
+  const isEnglish = isPercentSubject(resolvedSubject);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,7 +308,7 @@ function SingleUploadForm({ onDone }: { onDone: () => void }) {
 
 // ─── CSV 일괄 입력 ────────────────────────────────────
 function ExcelUploadForm() {
-  const [csvType, setCsvType] = useState<'regular' | 'english'>('regular');
+  const [csvType, setCsvType] = useState<'regular' | 'percent'>('regular');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string>('');
@@ -334,10 +334,10 @@ function ExcelUploadForm() {
       <p className="text-sm text-gray-500 mb-5">등급컷 데이터를 CSV로 한 번에 입력합니다. CSV는 엑셀에서 그대로 열립니다.</p>
 
       <div className="flex gap-2 mb-4">
-        {(['regular', 'english'] as const).map((t) => (
+        {(['regular', 'percent'] as const).map((t) => (
           <button key={t} type="button" onClick={() => setCsvType(t)}
             className={`px-4 py-2 rounded-lg text-sm font-bold border-2 transition-all ${csvType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'}`}>
-            {t === 'regular' ? '일반과목' : '영어'}
+            {t === 'regular' ? '일반과목 (국어/수학/탐구 등)' : '절대평가 (영어/제2외국어/한문)'}
           </button>
         ))}
       </div>

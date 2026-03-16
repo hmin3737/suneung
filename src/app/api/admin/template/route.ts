@@ -13,18 +13,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: '권한 없음' }, { status: 401 });
   }
 
-  if (type === 'english') {
+  if (type === 'percent') {
     const rows = [
-      ['학년(고1/고2/고3)', '학년도', '월',
+      ['학년(고1/고2/고3)', '학년도', '월', '과목',
         '1등급_누적비율(%)', '2등급_누적비율(%)', '3등급_누적비율(%)',
         '4등급_누적비율(%)', '5등급_누적비율(%)', '6등급_누적비율(%)',
         '7등급_누적비율(%)', '8등급_누적비율(%)', '9등급_누적비율(%)'],
-      ['고3', 2026, 11, 4.35, 11.37, 23.56, 40.12, 60.34, 75.88, 89.01, 96.44, 100],
+      ['고3', 2026, 11, '영어', 4.35, 11.37, 23.56, 40.12, 60.34, 75.88, 89.01, 96.44, 100],
+      ['고3', 2026, 11, '일본어Ⅰ', 5.12, 13.44, 27.81, 45.33, 63.21, 78.55, 91.02, 97.34, 100],
     ];
     return new NextResponse('\uFEFF' + toCSV(rows), {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="suneung_영어_template.csv"',
+        'Content-Disposition': 'attachment; filename="suneung_절대평가_template.csv"',
       },
     });
   }

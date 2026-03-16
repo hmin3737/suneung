@@ -1,4 +1,5 @@
 import { GradeCutoff } from '@/lib/db';
+import { isPercentSubject } from '@/lib/constants';
 
 type Props = {
   subject: string;
@@ -23,7 +24,7 @@ function GradeCell({ index, label, value }: { index: number; label: string; valu
 }
 
 export default function GradeCutoffTable({ subject, cutoff }: Props) {
-  const isEnglish = subject === '영어';
+  const isEnglish = isPercentSubject(subject);
 
   if (isEnglish) {
     const pcts = [

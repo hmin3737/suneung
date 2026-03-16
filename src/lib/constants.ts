@@ -28,5 +28,11 @@ export function resolveSubject(main: string, sub: string): string {
   return SUB_SUBJECTS[main as MainSubject] ? sub : main;
 }
 
+// 누적비율(%)로 표시하는 절대평가 과목
+const FOREIGN_LANG_SUBJECTS = SUB_SUBJECTS['제2외국어/한문'] ?? [];
+export function isPercentSubject(subject: string): boolean {
+  return subject === '영어' || (FOREIGN_LANG_SUBJECTS as string[]).includes(subject);
+}
+
 export const CURRENT_YEAR = new Date().getFullYear();
 export const YEARS = Array.from({ length: 15 }, (_, i) => CURRENT_YEAR - i);

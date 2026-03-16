@@ -18,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <head>
+        <meta name="google-adsense-account" content="ca-pub-1629374041455954" />
         {process.env.NEXT_PUBLIC_ADSENSE_CLIENT && (
           <Script
             async
