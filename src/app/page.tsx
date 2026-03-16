@@ -42,17 +42,7 @@ export default function Home() {
   const [searched, setSearched] = useState(false);
 
   const handleChange = (key: keyof typeof selection, value: string | number) => {
-    setSelection((prev) => {
-      const next = { ...prev, [key]: value };
-      // 학년 변경 시 month 리셋
-      if (key === 'grade') {
-        const months = MONTHS_BY_GRADE[value as string] || [];
-        if (!months.includes(next.month)) {
-          next.month = months[0] || 11;
-        }
-      }
-      return next;
-    });
+    setSelection((prev) => ({ ...prev, [key]: value }));
     setSearched(false);
     setExam(null);
   };

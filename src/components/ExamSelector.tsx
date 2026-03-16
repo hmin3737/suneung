@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { GRADES, MONTHS_BY_GRADE, MAIN_SUBJECTS, SUB_SUBJECTS, YEARS, resolveSubject } from '@/lib/constants';
+import { useState } from 'react';
+import { GRADES, MONTHS_BY_GRADE, MAIN_SUBJECTS, SUB_SUBJECTS, YEARS } from '@/lib/constants';
 
 type SelectionState = {
   grade: string;
@@ -15,31 +15,32 @@ type Props = {
   onChange: (key: keyof SelectionState, value: string | number) => void;
 };
 
+// selection.subject에서 mainSubject 역추출
+function getMainFromSubject(subject: string): string {
+  for (const [main, subs] of Object.entries(SUB_SUBJECTS)) {
+    if (subs?.includes(subject)) return main;
+  }
+  return (MAIN_SUBJECTS as readonly string[]).includes(subject) ? subject : '국어';
+}
+
 export default function ExamSelector({ selection, onChange }: Props) {
   const months = MONTHS_BY_GRADE[selection.grade] || [];
-
-  // 현재 선택된 subject에서 main/sub 역추출
-  const getInitialMain = () => {
-    for (const [main, subs] of Object.entries(SUB_SUBJECTS)) {
-      if (subs?.includes(selection.subject)) return main;
-    }
-    return MAIN_SUBJECTS.includes(selection.subject as any) ? selection.subject : '국어';
-  };
-
-  const [mainSubject, setMainSubject] = useState(getInitialMain);
+  const [mainSubject, setMainSubject] = useState(() => getMainFromSubject(selection.subject));
   const subList = SUB_SUBJECTS[mainSubject as keyof typeof SUB_SUBJECTS] ?? null;
-
-  useEffect(() => {
-    const resolved = resolveSubject(mainSubject, subList?.[0] ?? mainSubject);
-    onChange('subject', resolved);
-  }, [mainSubject]);
 
   const handleMainChange = (main: string) => {
     setMainSubject(main);
+    const subs = SUB_SUBJECTS[main as keyof typeof SUB_SUBJECTS];
+    // 세부과목이 있으면 첫 번째 세부과목, 없으면 main 자체
+    onChange('subject', subs ? subs[0] : main);
   };
 
-  const handleSubChange = (sub: string) => {
-    onChange('subject', sub);
+  const handleGradeChange = (g: string) => {
+    onChange('grade', g);
+    const newMonths = MONTHS_BY_GRADE[g] || [];
+    if (!newMonths.includes(selection.month)) {
+      onChange('month', newMonths[0] ?? 11);
+    }
   };
 
   return (
@@ -52,7 +53,7 @@ export default function ExamSelector({ selection, onChange }: Props) {
             {GRADES.map((g) => (
               <button
                 key={g}
-                onClick={() => onChange('grade', g)}
+                onClick={() => handleGradeChange(g)}
                 className={`py-4 rounded-xl text-xl font-bold transition-all border-2 ${
                   selection.grade === g
                     ? 'bg-blue-600 text-white border-blue-600 shadow-lg scale-105'
@@ -120,7 +121,7 @@ export default function ExamSelector({ selection, onChange }: Props) {
         </div>
       </div>
 
-      {/* 세부 과목 (사회/과학/제2외국어 선택 시) */}
+      {/* 세부 과목 */}
       {subList && (
         <div className="bg-blue-50 rounded-2xl p-4">
           <label className="text-sm font-semibold text-blue-600 mb-3 block">세부 과목 선택</label>
@@ -128,7 +129,7 @@ export default function ExamSelector({ selection, onChange }: Props) {
             {subList.map((sub) => (
               <button
                 key={sub}
-                onClick={() => handleSubChange(sub)}
+                onClick={() => onChange('subject', sub)}
                 className={`py-2 px-4 rounded-xl text-sm font-bold transition-all border-2 ${
                   selection.subject === sub
                     ? 'bg-blue-600 text-white border-blue-600 shadow-md'
