@@ -10,7 +10,7 @@ import AdmZip from 'adm-zip';
 function parseFilename(filename: string): {
   year: number; grade: string; month: number; subject: string; fileType: 'problem' | 'answer' | 'ebs';
 } | null {
-  const base = filename.replace(/\.pdf$/i, '');
+  const base = filename.normalize('NFC').replace(/\.pdf$/i, '');
   const parts = base.split('_');
   if (parts.length < 5) return null;
 
