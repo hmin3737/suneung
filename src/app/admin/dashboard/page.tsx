@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { GRADES, MAIN_SUBJECTS, SUB_SUBJECTS, YEARS, MONTHS_BY_GRADE, resolveSubject, getExamType, isPercentSubject } from '@/lib/constants';
+import { GRADES, MAIN_SUBJECTS, SUB_SUBJECTS, YEARS, MONTHS_BY_GRADE, resolveSubject, getExamType, isPercentSubject, getElectives, ELECTIVE_LABELS } from '@/lib/constants';
 
 type Exam = {
   id: number;
@@ -121,10 +121,16 @@ function SingleUploadForm({ onDone }: { onDone: () => void }) {
   const [problemFile, setProblemFile] = useState<File | null>(null);
   const [answerFile, setAnswerFile] = useState<File | null>(null);
   const [ebsFile, setEbsFile] = useState<File | null>(null);
-  const [cutoffMin, setCutoffMin] = useState<Record<string, string>>({});
-  const [cutoffMax, setCutoffMax] = useState<Record<string, string>>({});
-  const [engPct, setEngPct] = useState<Record<string, string>>({});
+  const [listeningScriptFile, setListeningScriptFile] = useState<File | null>(null);
+  const [listeningZipFile, setListeningZipFile] = useState<File | null>(null);
+  // 선택과목별 등급컷: { 화작: { min: {1:'',...}, max: {1:'',...}, maxScore: '' }, ... }
+  type ElectiveCutoff = { min: Record<number, string>; max: Record<number, string>; maxScore: string };
+  const [electiveCutoffs, setElectiveCutoffs] = useState<Record<string, ElectiveCutoff>>({});
+  const [cutoffMin, setCutoffMin] = useState<Record<number, string>>({});
+  const [cutoffMax, setCutoffMax] = useState<Record<number, string>>({});
+  const [engPct, setEngPct] = useState<Record<number, string>>({});
   const [maxScore, setMaxScore] = useState('');
+  const [activeElective, setActiveElective] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -133,6 +139,13 @@ function SingleUploadForm({ onDone }: { onDone: () => void }) {
   const subList = SUB_SUBJECTS[mainSubject as keyof typeof SUB_SUBJECTS] ?? null;
   const resolvedSubject = resolveSubject(mainSubject, subSubject || subList?.[0] || mainSubject);
   const isEnglish = isPercentSubject(resolvedSubject);
+  const electives = getElectives(resolvedSubject);
+
+  const getElectiveCutoff = (elective: string): ElectiveCutoff =>
+    electiveCutoffs[elective] ?? { min: {}, max: {}, maxScore: '' };
+
+  const updateElectiveCutoff = (elective: string, patch: Partial<ElectiveCutoff>) =>
+    setElectiveCutoffs((prev) => ({ ...prev, [elective]: { ...getElectiveCutoff(elective), ...patch } }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,20 +160,39 @@ function SingleUploadForm({ onDone }: { onDone: () => void }) {
       if (problemFile) form.append('problem', problemFile);
       if (answerFile) form.append('answer', answerFile);
       if (ebsFile) form.append('ebs', ebsFile);
-      if (maxScore) form.append('max_standard_score', maxScore);
-      for (let i = 1; i <= 9; i++) {
-        if (isEnglish) {
+      if (listeningScriptFile) form.append('listening_script', listeningScriptFile);
+      if (listeningZipFile) form.append('listening_zip', listeningZipFile);
+
+      if (electives.length > 0) {
+        // 선택과목별 접두사 필드명
+        for (const elective of electives) {
+          const ec = getElectiveCutoff(elective);
+          if (ec.maxScore) form.append(`${elective}_max_standard_score`, ec.maxScore);
+          for (let i = 1; i <= 9; i++) {
+            if (ec.min[i]) form.append(`${elective}_grade_${i}_min`, ec.min[i]);
+            if (ec.max[i]) form.append(`${elective}_grade_${i}_max`, ec.max[i]);
+          }
+        }
+      } else if (isEnglish) {
+        form.append('is_percent', '1');
+        for (let i = 1; i <= 9; i++) {
           if (engPct[i]) form.append(`eng_pct_${i}`, engPct[i]);
-        } else {
+        }
+      } else {
+        if (maxScore) form.append('max_standard_score', maxScore);
+        for (let i = 1; i <= 9; i++) {
           if (cutoffMin[i]) form.append(`grade_${i}_min`, cutoffMin[i]);
           if (cutoffMax[i]) form.append(`grade_${i}_max`, cutoffMax[i]);
         }
       }
+
       const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
       if (res.ok) {
         setMessage('저장 완료!');
         setProblemFile(null); setAnswerFile(null); setEbsFile(null);
         setCutoffMin({}); setCutoffMax({}); setEngPct({}); setMaxScore('');
+        setElectiveCutoffs({});
+        setListeningScriptFile(null); setListeningZipFile(null);
         onDone();
       } else {
         const err = await res.json();
@@ -244,21 +276,73 @@ function SingleUploadForm({ onDone }: { onDone: () => void }) {
           })}
         </div>
 
+        {/* 듣기 파일 (영어만) */}
+        {isEnglish && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border-2 border-dashed border-orange-200 rounded-xl p-4 text-center">
+              <label className="text-sm font-semibold text-gray-600 mb-2 block">🎧 듣기 대본 PDF</label>
+              <input type="file" accept=".pdf" onChange={(e) => setListeningScriptFile(e.target.files?.[0] || null)}
+                className="text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:border-0 file:rounded-lg file:bg-orange-50 file:text-orange-700 file:font-medium" />
+              {listeningScriptFile && <p className="text-xs text-green-600 mt-1">{listeningScriptFile.name}</p>}
+            </div>
+            <div className="border-2 border-dashed border-teal-200 rounded-xl p-4 text-center">
+              <label className="text-sm font-semibold text-gray-600 mb-2 block">🎵 듣기 파일 ZIP</label>
+              <input type="file" accept=".zip" onChange={(e) => setListeningZipFile(e.target.files?.[0] || null)}
+                className="text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:border-0 file:rounded-lg file:bg-teal-50 file:text-teal-700 file:font-medium" />
+              {listeningZipFile && <p className="text-xs text-green-600 mt-1">{listeningZipFile.name}</p>}
+            </div>
+          </div>
+        )}
+
         {/* 등급컷 */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-semibold text-gray-500">등급컷</label>
-            {!isEnglish && (
-              <div className="flex items-center gap-1">
-                <input type="number" value={maxScore} onChange={(e) => setMaxScore(e.target.value)}
-                  className="w-20 border-2 border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:border-blue-500 focus:outline-none"
-                  placeholder="최고점" />
-                <span className="text-xs text-gray-500">표준점수 최고점</span>
-              </div>
-            )}
-          </div>
+          <label className="text-xs font-semibold text-gray-500 mb-2 block">등급컷</label>
 
-          {isEnglish ? (
+          {electives.length > 0 ? (
+            <div>
+              {/* 선택과목 탭 */}
+              <div className="flex gap-2 mb-3">
+                {electives.map((el) => (
+                  <button type="button" key={el}
+                    onClick={() => setActiveElective(el)}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-bold border-2 transition-all ${(activeElective || electives[0]) === el ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'}`}>
+                    {ELECTIVE_LABELS[el] ?? el}
+                  </button>
+                ))}
+              </div>
+              {electives.map((el) => {
+                const ec = getElectiveCutoff(el);
+                const isActive = (activeElective || electives[0]) === el;
+                return (
+                  <div key={el} className={isActive ? '' : 'hidden'}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input type="number" value={ec.maxScore}
+                        onChange={(e) => updateElectiveCutoff(el, { maxScore: e.target.value })}
+                        className="w-20 border-2 border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:border-blue-500 focus:outline-none"
+                        placeholder="최고점" />
+                      <span className="text-xs text-gray-500">표준점수 최고점</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">단일값은 하한만 입력. 범위면 하한~상한 모두 입력.</p>
+                    <div className="grid grid-cols-9 gap-2">
+                      {Array.from({ length: 9 }, (_, i) => i + 1).map((g) => (
+                        <div key={g} className="flex flex-col items-center gap-1">
+                          <span className="text-xs text-gray-500">{g}등급</span>
+                          <input type="number" value={ec.min[g] || ''}
+                            onChange={(e) => updateElectiveCutoff(el, { min: { ...ec.min, [g]: e.target.value } })}
+                            className="w-full border-2 border-gray-200 rounded-lg px-1 py-1 text-center text-xs focus:border-blue-500 focus:outline-none"
+                            placeholder="하한" />
+                          <input type="number" value={ec.max[g] || ''}
+                            onChange={(e) => updateElectiveCutoff(el, { max: { ...ec.max, [g]: e.target.value } })}
+                            className="w-full border-2 border-gray-100 rounded-lg px-1 py-1 text-center text-xs focus:border-blue-300 focus:outline-none bg-gray-50"
+                            placeholder="상한" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : isEnglish ? (
             <div>
               <p className="text-xs text-blue-600 mb-2">영어 절대평가 — 각 등급 누적비율(%) 입력</p>
               <div className="grid grid-cols-9 gap-2">
@@ -276,6 +360,12 @@ function SingleUploadForm({ onDone }: { onDone: () => void }) {
             </div>
           ) : (
             <div>
+              <div className="flex items-center gap-2 mb-2">
+                <input type="number" value={maxScore} onChange={(e) => setMaxScore(e.target.value)}
+                  className="w-20 border-2 border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:border-blue-500 focus:outline-none"
+                  placeholder="최고점" />
+                <span className="text-xs text-gray-500">표준점수 최고점</span>
+              </div>
               <p className="text-xs text-gray-400 mb-2">단일값은 하한만 입력. 범위면 하한~상한 모두 입력.</p>
               <div className="grid grid-cols-9 gap-2">
                 {Array.from({ length: 9 }, (_, i) => i + 1).map((g) => (

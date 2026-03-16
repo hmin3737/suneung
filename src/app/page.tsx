@@ -7,6 +7,25 @@ import GradeCutoffTable from '@/components/GradeCutoffTable';
 import AdBanner from '@/components/AdBanner';
 import { MONTHS_BY_GRADE, getExamType } from '@/lib/constants';
 
+type CutoffItem = {
+  id: number;
+  exam_id: number;
+  sub_subject: string;
+  grade_1_min: number | null; grade_1_max: number | null;
+  grade_2_min: number | null; grade_2_max: number | null;
+  grade_3_min: number | null; grade_3_max: number | null;
+  grade_4_min: number | null; grade_4_max: number | null;
+  grade_5_min: number | null; grade_5_max: number | null;
+  grade_6_min: number | null; grade_6_max: number | null;
+  grade_7_min: number | null; grade_7_max: number | null;
+  grade_8_min: number | null; grade_8_max: number | null;
+  grade_9_min: number | null; grade_9_max: number | null;
+  eng_pct_1: number | null; eng_pct_2: number | null; eng_pct_3: number | null;
+  eng_pct_4: number | null; eng_pct_5: number | null; eng_pct_6: number | null;
+  eng_pct_7: number | null; eng_pct_8: number | null; eng_pct_9: number | null;
+  max_standard_score: number | null;
+};
+
 type ExamData = {
   id: number;
   grade: string;
@@ -17,15 +36,9 @@ type ExamData = {
   problem_s3_key: string | null;
   answer_s3_key: string | null;
   ebs_s3_key: string | null;
-  grade_1: number | null;
-  grade_2: number | null;
-  grade_3: number | null;
-  grade_4: number | null;
-  grade_5: number | null;
-  grade_6: number | null;
-  grade_7: number | null;
-  grade_8: number | null;
-  grade_9: number | null;
+  listening_script_s3_key: string | null;
+  listening_zip_s3_key: string | null;
+  cutoffs: CutoffItem[];
 };
 
 const currentYear = new Date().getFullYear();
@@ -123,6 +136,12 @@ export default function Home() {
                   <FileDownloadCard examId={exam.id} fileType="problem" available={!!exam.problem_s3_key} />
                   <FileDownloadCard examId={exam.id} fileType="answer" available={!!exam.answer_s3_key} />
                   <FileDownloadCard examId={exam.id} fileType="ebs" available={!!exam.ebs_s3_key} />
+                  {(exam.listening_script_s3_key || exam.listening_zip_s3_key) && (
+                    <>
+                      <FileDownloadCard examId={exam.id} fileType="listening_script" available={!!exam.listening_script_s3_key} />
+                      <FileDownloadCard examId={exam.id} fileType="listening_zip" available={!!exam.listening_zip_s3_key} />
+                    </>
+                  )}
                 </div>
 
                 {/* 중간 광고 */}
@@ -131,7 +150,7 @@ export default function Home() {
                 </div>
 
                 {/* 등급컷 */}
-                <GradeCutoffTable subject={exam.subject} cutoff={exam as any} />
+                <GradeCutoffTable subject={exam.subject} cutoffs={exam.cutoffs} />
 
                 {/* 하단 광고 */}
                 <div className="flex justify-center mt-4">

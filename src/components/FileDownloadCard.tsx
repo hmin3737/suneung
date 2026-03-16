@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 type FileCardProps = {
   examId: number;
-  fileType: 'problem' | 'answer' | 'ebs';
+  fileType: 'problem' | 'answer' | 'ebs' | 'listening_script' | 'listening_zip';
   available: boolean;
 };
 
@@ -12,6 +12,8 @@ const FILE_INFO = {
   problem: { label: '문제지', icon: '📄', color: 'blue' },
   answer: { label: '정답지', icon: '✅', color: 'green' },
   ebs: { label: 'EBS 해설', icon: '📚', color: 'purple' },
+  listening_script: { label: '듣기 대본', icon: '🎧', color: 'orange' },
+  listening_zip: { label: '듣기 파일', icon: '🎵', color: 'teal' },
 } as const;
 
 const COLOR_CLASSES = {
@@ -29,6 +31,16 @@ const COLOR_CLASSES = {
     card: 'border-purple-200 hover:border-purple-400 hover:shadow-purple-100',
     btn: 'bg-purple-600 hover:bg-purple-700',
     icon: 'bg-purple-50',
+  },
+  orange: {
+    card: 'border-orange-200 hover:border-orange-400 hover:shadow-orange-100',
+    btn: 'bg-orange-500 hover:bg-orange-600',
+    icon: 'bg-orange-50',
+  },
+  teal: {
+    card: 'border-teal-200 hover:border-teal-400 hover:shadow-teal-100',
+    btn: 'bg-teal-600 hover:bg-teal-700',
+    icon: 'bg-teal-50',
   },
 };
 

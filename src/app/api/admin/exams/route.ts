@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 import { deleteFromS3 } from '@/lib/s3';
 import db, { Exam } from '@/lib/db';
 

@@ -19,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <head>
         <meta name="google-adsense-account" content="ca-pub-1629374041455954" />
+        <meta name="naver-site-verification" content="d791d7b4d577ecf28782541bd37ee7bce2a81faf" />
         {process.env.NEXT_PUBLIC_ADSENSE_CLIENT && (
           <Script
             async

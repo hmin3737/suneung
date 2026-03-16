@@ -36,3 +36,17 @@ export function isPercentSubject(subject: string): boolean {
 
 export const CURRENT_YEAR = new Date().getFullYear();
 export const YEARS = Array.from({ length: 15 }, (_, i) => CURRENT_YEAR - i);
+
+export const ELECTIVE_LABELS: Record<string, string> = {
+  '화작': '화법과작문',
+  '언매': '언어와매체',
+  '확통': '확률과통계',
+  '미적': '미적분',
+  '기하': '기하',
+};
+
+export function getElectives(subject: string): string[] {
+  if (subject === '국어') return ['화작', '언매'];
+  if (subject === '수학') return ['확통', '미적', '기하'];
+  return [];
+}

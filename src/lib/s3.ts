@@ -12,16 +12,22 @@ export const s3 = new S3Client({
 
 export const BUCKET = process.env.S3_BUCKET_NAME!;
 
+export type FileType = 'problem' | 'answer' | 'ebs' | 'listening_script' | 'listening_zip';
+
 export function buildS3Key(
   grade: string,
   year: number,
   month: number,
   examType: string,
   subject: string,
-  fileType: 'problem' | 'answer' | 'ebs'
+  fileType: FileType
 ): string {
-  const fileLabel = { problem: '문제', answer: '정답', ebs: 'EBS해설' }[fileType];
-  return `${year}/${grade}/${month}월_${examType}/${subject}_${fileLabel}.pdf`;
+  const fileLabel: Record<FileType, string> = {
+    problem: '문제', answer: '정답', ebs: 'EBS해설',
+    listening_script: '듣기대본', listening_zip: '듣기파일',
+  };
+  const ext = fileType === 'listening_zip' ? 'zip' : 'pdf';
+  return `${year}/${grade}/${month}월_${examType}/${subject}_${fileLabel[fileType]}.${ext}`;
 }
 
 export async function getPresignedDownloadUrl(key: string): Promise<string> {

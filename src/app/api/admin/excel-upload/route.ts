@@ -3,6 +3,8 @@ import { isAdminAuthenticated } from '@/lib/auth';
 import { getExamType, isPercentSubject } from '@/lib/constants';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 function n(v: string | undefined): number | null {
   if (!v || v.trim() === '' || v.startsWith('※')) return null;
   const num = parseFloat(v.trim());
@@ -10,7 +12,6 @@ function n(v: string | undefined): number | null {
 }
 
 function parseCSV(text: string): string[][] {
-  // BOM 제거
   const clean = text.replace(/^\uFEFF/, '');
   return clean.split('\n').filter(Boolean).map((line) =>
     line.split(',').map((cell) => cell.replace(/^"|"$/g, '').trim())
@@ -29,14 +30,14 @@ function upsertExam(grade: string, year: number, month: number, subject: string)
   return result.lastInsertRowid as number;
 }
 
-function upsertCutoff(examId: number, data: Record<string, number | null>) {
+function upsertCutoff(examId: number, subSubject: string, data: Record<string, number | null>) {
   const cols = Object.keys(data);
   const vals = cols.map((c) => data[c]);
-  const existing = db.prepare('SELECT id FROM grade_cutoffs WHERE exam_id=?').get(examId);
+  const existing = db.prepare('SELECT id FROM grade_cutoffs WHERE exam_id=? AND sub_subject=?').get(examId, subSubject);
   if (existing) {
-    db.prepare(`UPDATE grade_cutoffs SET ${cols.map((c) => `${c}=?`).join(',')} WHERE exam_id=?`).run(...vals, examId);
+    db.prepare(`UPDATE grade_cutoffs SET ${cols.map((c) => `${c}=?`).join(',')} WHERE exam_id=? AND sub_subject=?`).run(...vals, examId, subSubject);
   } else {
-    db.prepare(`INSERT INTO grade_cutoffs (exam_id,${cols.join(',')}) VALUES (?,${cols.map(() => '?').join(',')})`).run(examId, ...vals);
+    db.prepare(`INSERT INTO grade_cutoffs (exam_id,sub_subject,${cols.join(',')}) VALUES (?,?,${cols.map(() => '?').join(',')})`).run(examId, subSubject, ...vals);
   }
 }
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
-  const type = formData.get('type') as string ?? 'regular';
+  const type = (formData.get('type') as string) ?? 'regular';
   if (!file) return NextResponse.json({ error: '파일 없음' }, { status: 400 });
 
   const text = await file.text();
@@ -66,30 +67,29 @@ export async function POST(req: NextRequest) {
     const grade = get('학년(고1/고2/고3)');
     const year = n(get('학년도'));
     const month = n(get('월'));
-    if (!grade || !year || !month) { errors.push(`스킵: ${row.join(',')}`); continue; }
+    const subject = get('과목');
+    const subSubject = get('선택과목') ?? '';
+
+    if (!grade || !year || !month || !subject) { errors.push(`스킵: ${row.join(',')}`); continue; }
+
+    const examId = upsertExam(grade, year, month, subject);
 
     if (type === 'percent') {
-      const subject = get('과목');
-      if (!subject) { errors.push(`과목 없음: ${row.join(',')}`); continue; }
-      const examId = upsertExam(grade, year, month, subject);
       const data: Record<string, number | null> = { max_standard_score: null };
       for (let i = 1; i <= 9; i++) {
         data[`eng_pct_${i}`] = n(get(`${i}등급_누적비율(%)`));
         data[`grade_${i}_min`] = null;
         data[`grade_${i}_max`] = null;
       }
-      upsertCutoff(examId, data);
+      upsertCutoff(examId, subSubject, data);
     } else {
-      const subject = get('과목');
-      if (!subject) { errors.push(`과목 없음: ${row.join(',')}`); continue; }
-      const examId = upsertExam(grade, year, month, subject);
       const data: Record<string, number | null> = { max_standard_score: n(get('표준점수_최고점')) };
       for (let i = 1; i <= 9; i++) {
         data[`grade_${i}_min`] = n(get(`${i}등급_하한`));
         data[`grade_${i}_max`] = n(get(`${i}등급_상한`));
         data[`eng_pct_${i}`] = null;
       }
-      upsertCutoff(examId, data);
+      upsertCutoff(examId, subSubject, data);
     }
     count++;
   }

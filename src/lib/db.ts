@@ -22,12 +22,15 @@ db.exec(`
     problem_s3_key TEXT,
     answer_s3_key TEXT,
     ebs_s3_key TEXT,
+    listening_script_s3_key TEXT,
+    listening_zip_s3_key TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
   CREATE TABLE IF NOT EXISTS grade_cutoffs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+    sub_subject TEXT NOT NULL DEFAULT '',
 
     -- 국어/수학/탐구 등: 범위 (max = null 이면 단일값)
     grade_1_min INTEGER, grade_1_max INTEGER,
@@ -50,6 +53,12 @@ db.exec(`
   );
 `);
 
+// Migration: 구버전 DB 대응
+try { db.exec(`ALTER TABLE grade_cutoffs ADD COLUMN sub_subject TEXT NOT NULL DEFAULT ''`); } catch {}
+try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_gc_exam_sub ON grade_cutoffs (exam_id, sub_subject)`); } catch {}
+try { db.exec(`ALTER TABLE exams ADD COLUMN listening_script_s3_key TEXT`); } catch {}
+try { db.exec(`ALTER TABLE exams ADD COLUMN listening_zip_s3_key TEXT`); } catch {}
+
 export default db;
 
 export type Exam = {
@@ -62,11 +71,14 @@ export type Exam = {
   problem_s3_key: string | null;
   answer_s3_key: string | null;
   ebs_s3_key: string | null;
+  listening_script_s3_key: string | null;
+  listening_zip_s3_key: string | null;
 };
 
 export type GradeCutoff = {
   id: number;
   exam_id: number;
+  sub_subject: string;
   grade_1_min: number | null; grade_1_max: number | null;
   grade_2_min: number | null; grade_2_max: number | null;
   grade_3_min: number | null; grade_3_max: number | null;

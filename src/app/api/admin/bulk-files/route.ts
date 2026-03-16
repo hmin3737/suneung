@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/auth';
-import { uploadToS3, buildS3Key } from '@/lib/s3';
+import { uploadToS3, buildS3Key, type FileType } from '@/lib/s3';
 import { getExamType } from '@/lib/constants';
 import db from '@/lib/db';
 import AdmZip from 'adm-zip';
 
-// 파일명 파싱: {학년도}_{학년}_{월}월_{과목}_{종류}.pdf
-// 예) 2026_고3_11월_국어_문제.pdf
+// 파일명 파싱: {학년도}_{학년}_{월}월_{과목}_{종류}.(pdf|zip)
+// 예) 2026_고3_11월_국어_문제.pdf / 2026_고3_11월_영어_듣기파일.zip
 function parseFilename(filename: string): {
-  year: number; grade: string; month: number; subject: string; fileType: 'problem' | 'answer' | 'ebs';
+  year: number; grade: string; month: number; subject: string; fileType: FileType;
 } | null {
-  const base = filename.normalize('NFC').replace(/\.pdf$/i, '');
+  const normalized = filename.normalize('NFC');
+  const base = normalized.replace(/\.(pdf|zip)$/i, '');
   const parts = base.split('_');
   console.log('[parse]', JSON.stringify(filename), '→ parts:', parts);
   if (parts.length < 5) return null;
@@ -19,16 +20,17 @@ function parseFilename(filename: string): {
   const grade = parts[1];
   const monthStr = parts[2].replace('월', '');
   const month = parseInt(monthStr);
-  // 과목은 중간에 _ 포함 가능하므로 마지막 부분이 종류
   const typePart = parts[parts.length - 1];
   const subject = parts.slice(3, parts.length - 1).join('_');
 
   if (isNaN(year) || isNaN(month) || !grade || !subject) return null;
 
-  const typeMap: Record<string, 'problem' | 'answer' | 'ebs'> = {
+  const typeMap: Record<string, FileType> = {
     '문제': 'problem',
     '정답': 'answer',
     'EBS해설': 'ebs',
+    '듣기대본': 'listening_script',
+    '듣기파일': 'listening_zip',
   };
   const fileType = typeMap[typePart];
   if (!fileType) return null;
@@ -62,8 +64,9 @@ export async function POST(req: NextRequest) {
   for (const entry of entries) {
     if (entry.isDirectory) continue;
     const filename = entry.name;
-    if (!filename.toLowerCase().endsWith('.pdf')) {
-      results.push({ filename, status: '스킵 (PDF 아님)' });
+    const lc = filename.toLowerCase();
+    if (!lc.endsWith('.pdf') && !lc.endsWith('.zip')) {
+      results.push({ filename, status: '스킵 (PDF/ZIP 아님)' });
       continue;
     }
 
@@ -82,18 +85,23 @@ export async function POST(req: NextRequest) {
       .get(grade, year, month, subject) as { id: number } | undefined;
 
     const s3Key = buildS3Key(grade, year, month, examType, subject, fileType);
-    const keyColumn = { problem: 'problem_s3_key', answer: 'answer_s3_key', ebs: 'ebs_s3_key' }[fileType];
+    const keyColumn: Record<FileType, string> = {
+      problem: 'problem_s3_key', answer: 'answer_s3_key', ebs: 'ebs_s3_key',
+      listening_script: 'listening_script_s3_key', listening_zip: 'listening_zip_s3_key',
+    };
+    const col = keyColumn[fileType];
 
     if (!exam) {
       db.prepare(`INSERT OR IGNORE INTO exams (grade,year,month,exam_type,subject) VALUES (?,?,?,?,?)`).run(grade, year, month, examType, subject);
       exam = db.prepare('SELECT id FROM exams WHERE grade=? AND year=? AND month=? AND subject=?').get(grade, year, month, subject) as { id: number };
     }
 
-    db.prepare(`UPDATE exams SET ${keyColumn}=? WHERE id=?`).run(s3Key, exam.id);
+    db.prepare(`UPDATE exams SET ${col}=? WHERE id=?`).run(s3Key, exam.id);
 
     try {
       const fileData = entry.getData();
-      await uploadToS3(s3Key, fileData, 'application/pdf');
+      const contentType = fileType === 'listening_zip' ? 'application/zip' : 'application/pdf';
+      await uploadToS3(s3Key, fileData, contentType);
       results.push({ filename, status: '완료' });
     } catch (e) {
       results.push({ filename, status: `S3 오류: ${(e as Error).message}` });

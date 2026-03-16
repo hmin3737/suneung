@@ -16,21 +16,19 @@ export async function GET(req: NextRequest) {
 
   const exam = db
     .prepare(
-      `SELECT e.*,
-        gc.grade_1_min, gc.grade_1_max, gc.grade_2_min, gc.grade_2_max,
-        gc.grade_3_min, gc.grade_3_max, gc.grade_4_min, gc.grade_4_max,
-        gc.grade_5_min, gc.grade_5_max, gc.grade_6_min, gc.grade_6_max,
-        gc.grade_7_min, gc.grade_7_max, gc.grade_8_min, gc.grade_8_max,
-        gc.grade_9_min, gc.grade_9_max,
-        gc.eng_pct_1, gc.eng_pct_2, gc.eng_pct_3, gc.eng_pct_4, gc.eng_pct_5,
-        gc.eng_pct_6, gc.eng_pct_7, gc.eng_pct_8, gc.eng_pct_9,
-        gc.max_standard_score
-       FROM exams e
-       LEFT JOIN grade_cutoffs gc ON gc.exam_id = e.id
-       WHERE e.grade = ? AND e.year = ? AND e.month = ? AND e.subject = ?
+      `SELECT id, grade, year, month, exam_type, subject,
+        problem_s3_key, answer_s3_key, ebs_s3_key
+       FROM exams
+       WHERE grade = ? AND year = ? AND month = ? AND subject = ?
        LIMIT 1`
     )
     .get(grade, parseInt(year), parseInt(month), subject);
 
-  return NextResponse.json({ exam: exam || null });
+  if (!exam) return NextResponse.json({ exam: null });
+
+  const cutoffs = db
+    .prepare(`SELECT * FROM grade_cutoffs WHERE exam_id = ? ORDER BY sub_subject ASC`)
+    .all((exam as any).id);
+
+  return NextResponse.json({ exam: { ...(exam as object), cutoffs } });
 }
