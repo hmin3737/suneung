@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const config = { api: { bodyParser: { sizeLimit: '500mb' } } };
 import { isAdminAuthenticated } from '@/lib/auth';
 import { uploadToS3, buildS3Key, type FileType } from '@/lib/s3';
 import { getExamType } from '@/lib/constants';
