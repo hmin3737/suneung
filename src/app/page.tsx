@@ -104,10 +104,16 @@ export default function Home() {
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 mb-6">
           <ExamSelector selection={selection} onChange={handleChange} />
 
+          <p className="mt-4 text-xs text-gray-400 text-center">
+            연도는 <span className="font-semibold text-gray-500">학년도</span> 기준입니다.
+            고3은 시행 연도+1 (예: 2024년 11월 시험 → 2025학년도),
+            고1·고2는 시행 연도 그대로 표기합니다.
+          </p>
+
           <button
             onClick={search}
             disabled={loading}
-            className="mt-6 w-full py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-2xl font-extrabold rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-98"
+            className="mt-4 w-full py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-2xl font-extrabold rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-98"
           >
             {loading ? '검색 중...' : '자료 검색'}
           </button>
