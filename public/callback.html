@@ -1,0 +1,12 @@
+<!-- https://nemento.men/callback.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>인증 완료</title></head>
+<body>
+  <p>이메일 인증이 완료되었습니다. 앱으로 돌아가주세요.</p>
+  <script>
+    // 딥링크로 앱 열기 시도
+    window.location.href = window.location.href.replace('https://nementor.io/auth/callback', 'io.nementor.app://login-callback');
+  </script>
+</body>
+</html>
