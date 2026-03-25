@@ -94,7 +94,7 @@ export default async function ExamPage({ params }: { params: Promise<Params> }) 
           <div className="flex items-center gap-3 px-2">
             <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">{exam.grade}</span>
             <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-bold">
-              {exam.year}년도 {exam.month}월 {exam.exam_type}
+              {exam.year} {exam.month}월 {exam.exam_type}
             </span>
             <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">{exam.subject}</span>
           </div>

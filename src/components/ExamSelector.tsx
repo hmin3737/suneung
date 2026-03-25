@@ -75,9 +75,12 @@ export default function ExamSelector({ selection, onChange }: Props) {
             className="py-4 px-3 rounded-xl text-xl font-bold border-2 border-gray-200 focus:border-blue-500 focus:outline-none bg-white"
           >
             {YEARS.map((y) => (
-              <option key={y} value={y}>{y}년도</option>
+              <option key={y} value={y}>{y}</option>
             ))}
           </select>
+          <p className="text-xs text-gray-400 mt-1">
+            고3은 학년도(시행년도+1년), 고1·고2는 시행년도 기준입니다.
+          </p>
         </div>
 
         {/* 월 */}

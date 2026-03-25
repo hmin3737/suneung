@@ -104,12 +104,6 @@ export default function Home() {
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 mb-6">
           <ExamSelector selection={selection} onChange={handleChange} />
 
-          <p className="mt-4 text-xs text-gray-400 text-center">
-            연도는 <span className="font-semibold text-gray-500">학년도</span> 기준입니다.
-            고3은 시행 연도+1 (예: 2024년 11월 시험 → 2025학년도),
-            고1·고2는 시행 연도 그대로 표기합니다.
-          </p>
-
           <button
             onClick={search}
             disabled={loading}
@@ -130,7 +124,7 @@ export default function Home() {
                     {exam.grade}
                   </span>
                   <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-bold">
-                    {exam.year}년도 {exam.month}월 {exam.exam_type}
+                    {exam.year} {exam.month}월 {exam.exam_type}
                   </span>
                   <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
                     {exam.subject}
@@ -167,7 +161,7 @@ export default function Home() {
               <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-16 text-center">
                 <div className="text-5xl mb-4">📭</div>
                 <p className="text-xl font-bold text-gray-500">
-                  {selection.year}년도 {selection.month}월 {selection.grade} {selection.subject} 자료가 아직 없습니다.
+                  {selection.year} {selection.month}월 {selection.grade} {selection.subject} 자료가 아직 없습니다.
                 </p>
                 <p className="text-sm text-gray-400 mt-2">준비 중이거나 해당 시험이 없을 수 있습니다.</p>
               </div>
